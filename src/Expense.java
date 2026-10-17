@@ -27,6 +27,15 @@ public double getAmount(){
 public String getCategory() {
         return category;
     }
+    public String getDescription() {
+        return description;
+    }
+    public String getModeOfPayment() {
+        return modeOfPayment;
+    }
+    public LocalDate getDate(){
+    return date;
+    }
     public void setAmount(double amount) {
         this.amount = amount;
     }
