@@ -30,6 +30,7 @@ public class Main {
             }
 
             choice = sc.nextInt();
+            sc.nextLine();
 
             switch(choice){
                 case 1: {
@@ -134,6 +135,7 @@ public class Main {
                     int searchId = sc.nextInt();
                     sc.nextLine();
 
+                    // Find the existing expense in MySQL
                     Expense foundExpense = null;
 
                     for (Expense expense : expenseDAO.getAllExpenses()) {
@@ -148,47 +150,99 @@ public class Main {
                         break;
                     }
 
-                    System.out.println("Current expense details:");
+                    System.out.println("\nCurrent expense details:");
                     foundExpense.displayExpense();
 
-                    System.out.print("Enter new amount: ");
-                    double amount = sc.nextDouble();
+                    System.out.println("\nWhat would you like to edit?");
+                    System.out.println("1. Amount");
+                    System.out.println("2. Category");
+                    System.out.println("3. Description");
+                    System.out.println("4. Payment Method");
+                    System.out.println("5. Date");
+                    System.out.println("6. Cancel");
+
+                    System.out.print("Enter your choice: ");
+                    int editChoice = sc.nextInt();
                     sc.nextLine();
 
-                    System.out.print("Enter new category: ");
-                    String category = sc.nextLine();
+                    switch (editChoice) {
 
-                    System.out.print("Enter new description: ");
-                    String description = sc.nextLine();
+                        case 1: {
+                            System.out.print("Enter new amount: ");
+                            double amount = sc.nextDouble();
+                            sc.nextLine();
 
-                    System.out.print("Enter new payment method: ");
-                    String modeOfPayment = sc.nextLine();
+                            if (amount <= 0 || !Double.isFinite(amount)) {
+                                System.out.println("Amount must be greater than zero.");
+                                break;
+                            }
 
-                    LocalDate date;
-
-                    while (true) {
-                        try {
-                            System.out.print("Enter new date (YYYY-MM-DD): ");
-                            date = LocalDate.parse(sc.nextLine());
+                            foundExpense.setAmount(amount);
                             break;
-                        } catch (java.time.format.DateTimeParseException e) {
-                            System.out.println("Invalid date. Use YYYY-MM-DD.");
+                        }
+
+                        case 2: {
+                            System.out.print("Enter new category: ");
+                            String category = sc.nextLine().trim();
+
+                            if (category.isEmpty()) {
+                                System.out.println("Category cannot be empty.");
+                                break;
+                            }
+
+                            foundExpense.setCategory(category);
+                            break;
+                        }
+
+                        case 3: {
+                            System.out.print("Enter new description: ");
+                            foundExpense.setDescription(sc.nextLine());
+                            break;
+                        }
+
+                        case 4: {
+                            System.out.print("Enter new payment method: ");
+                            String payment = sc.nextLine().trim();
+
+                            if (payment.isEmpty()) {
+                                System.out.println("Payment method cannot be empty.");
+                                break;
+                            }
+
+                            foundExpense.setModeOfPayment(payment);
+                            break;
+                        }
+
+                        case 5: {
+                            try {
+                                System.out.print("Enter new date (YYYY-MM-DD): ");
+                                LocalDate date = LocalDate.parse(sc.nextLine());
+                                foundExpense.setDate(date);
+                            } catch (java.time.format.DateTimeParseException e) {
+                                System.out.println("Invalid date format.");
+                                break;
+                            }
+
+                            break;
+                        }
+
+                        case 6: {
+                            System.out.println("Edit cancelled.");
+                            break;
+                        }
+
+                        default: {
+                            System.out.println("Invalid edit choice.");
+                            break;
                         }
                     }
 
-                    Expense updatedExpense = new Expense(
-                            searchId,
-                            amount,
-                            category,
-                            description,
-                            modeOfPayment,
-                            date
-                    );
-
-                    if (expenseDAO.updateExpense(updatedExpense)) {
-                        System.out.println("Expense updated successfully!");
-                    } else {
-                        System.out.println("Expense could not be updated.");
+                    if (editChoice >= 1 && editChoice <= 5) {
+                        if (expenseDAO.updateExpense(foundExpense)) {
+                            System.out.println("Expense updated successfully!");
+                        } else {
+                            System.out.println("Failed to update expense.");
+                        }
                     }
 
                     break;
