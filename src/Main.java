@@ -6,7 +6,11 @@ public class Main {
     public static void main(String[] args){
         Scanner sc = new Scanner(System.in);
         ExpenseDAO expenseDAO = new ExpenseDAO();
-        Budget b1 = new Budget(3000);
+        double savedBudget = expenseDAO.getMonthlyBudget();
+        Budget b1 = new Budget(savedBudget);
+
+
+        System.out.println("New budget: ₹" + expenseDAO.getMonthlyBudget());
 
         int choice;
         do {
@@ -19,7 +23,8 @@ public class Main {
             System.out.println("6. Delete Expense");
             System.out.println("7. Search Expenses by Category");
             System.out.println("8. Spending by Category");
-            System.out.println("9. Exit");
+            System.out.println("9. Change Monthly Budget");
+            System.out.println("10. Exit");
 
             System.out.print("Enter your choice: ");
 
@@ -118,14 +123,14 @@ public class Main {
                     break;
                 }
                 case 4: {
-                    double totalSpent = expenseDAO.getTotalSpending();
+                    double totalSpent = expenseDAO.getCurrentMonthSpending();
 
                     double remaining =
                             b1.remainingMonthlyBudget(totalSpent);
 
                     b1.display();
 
-                    System.out.println("Total Spent: ₹" + totalSpent);
+                    System.out.println("Total Spent This Month: ₹" + totalSpent);
                     System.out.println("Remaining Budget: ₹" + remaining);
 
                     break;
@@ -164,7 +169,7 @@ public class Main {
                     System.out.print("Enter your choice: ");
                     int editChoice = sc.nextInt();
                     sc.nextLine();
-
+                    boolean editValid = true;
                     switch (editChoice) {
 
                         case 1: {
@@ -174,9 +179,9 @@ public class Main {
 
                             if (amount <= 0 || !Double.isFinite(amount)) {
                                 System.out.println("Amount must be greater than zero.");
+                                editValid = false;
                                 break;
                             }
-
                             foundExpense.setAmount(amount);
                             break;
                         }
@@ -187,6 +192,7 @@ public class Main {
 
                             if (category.isEmpty()) {
                                 System.out.println("Category cannot be empty.");
+                                editValid = false;
                                 break;
                             }
 
@@ -206,6 +212,7 @@ public class Main {
 
                             if (payment.isEmpty()) {
                                 System.out.println("Payment method cannot be empty.");
+                                editValid = false;
                                 break;
                             }
 
@@ -218,8 +225,10 @@ public class Main {
                                 System.out.print("Enter new date (YYYY-MM-DD): ");
                                 LocalDate date = LocalDate.parse(sc.nextLine());
                                 foundExpense.setDate(date);
+
                             } catch (java.time.format.DateTimeParseException e) {
                                 System.out.println("Invalid date format.");
+                                editValid = false;
                                 break;
                             }
 
@@ -233,11 +242,12 @@ public class Main {
 
                         default: {
                             System.out.println("Invalid edit choice.");
+                            editValid = false;
                             break;
                         }
                     }
 
-                    if (editChoice >= 1 && editChoice <= 5) {
+                    if (editChoice >= 1 && editChoice <= 5 && editValid) {
                         if (expenseDAO.updateExpense(foundExpense)) {
                             System.out.println("Expense updated successfully!");
                         } else {
@@ -298,8 +308,28 @@ public class Main {
 
                     break;
                 }
+                case 9: {
+                    System.out.print("Enter your new monthly budget: ");
 
-                case 9:{
+                    if (!sc.hasNextDouble()) {
+                        System.out.println("Invalid input. Please enter a number.");
+                        sc.nextLine();
+                        break;
+                    }
+
+                    double newBudget = sc.nextDouble();
+                    sc.nextLine();
+
+                    if (expenseDAO.updateMonthlyBudget(newBudget)) {
+                        b1.setMonthlyLimit(newBudget);
+                        System.out.println("Monthly budget updated successfully!");
+                        b1.display();
+                    }
+
+                    break;
+                }
+
+                case 10:{
                     System.out.println("Exiting expense tracker");
                     break;
                 }
@@ -307,7 +337,7 @@ public class Main {
                     System.out.println("invalid choice, please try again");
 
                 }
-        } while(choice != 9);
+        } while(choice != 10);
 
     }
 }

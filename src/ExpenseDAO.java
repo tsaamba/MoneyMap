@@ -3,6 +3,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.time.LocalDate;
 import java.util.List;
 
 public class ExpenseDAO {
@@ -40,6 +41,7 @@ public class ExpenseDAO {
             System.out.println(e.getMessage());
         }
     }
+
     public List<Expense> getAllExpenses() {
 
         List<Expense> expenses = new ArrayList<>();
@@ -73,13 +75,14 @@ public class ExpenseDAO {
 
         return expenses;
     }
+
     public boolean updateExpense(Expense expense) {
         String sql = """
-            UPDATE expenses
-            SET amount = ?, category = ?, description = ?,
-                mode_of_payment = ?, expense_date = ?
-            WHERE id = ?
-            """;
+                UPDATE expenses
+                SET amount = ?, category = ?, description = ?,
+                    mode_of_payment = ?, expense_date = ?
+                WHERE id = ?
+                """;
 
         try (
                 Connection connection = DBConnection.getConnection();
@@ -99,6 +102,7 @@ public class ExpenseDAO {
             return false;
         }
     }
+
     public boolean deleteExpense(int id) {
         String sql = "DELETE FROM expenses WHERE id = ?";
 
@@ -114,13 +118,14 @@ public class ExpenseDAO {
             return false;
         }
     }
+
     public List<Expense> searchByCategory(String category) {
         List<Expense> results = new ArrayList<>();
 
         String sql = """
-            SELECT * FROM expenses
-            WHERE LOWER(category) = LOWER(?)
-            """;
+                SELECT * FROM expenses
+                WHERE LOWER(category) = LOWER(?)
+                """;
 
         try (
                 Connection connection = DBConnection.getConnection();
@@ -149,6 +154,7 @@ public class ExpenseDAO {
 
         return results;
     }
+
     public double getTotalSpending() {
         String sql = "SELECT COALESCE(SUM(amount), 0) AS total FROM expenses";
 
@@ -168,4 +174,93 @@ public class ExpenseDAO {
         return 0;
     }
 
+
+    public double getCurrentMonthSpending() {
+        String sql = """
+                SELECT COALESCE(SUM(amount), 0) AS total
+                FROM expenses
+                WHERE expense_date >= ?
+                  AND expense_date < ?
+                """;
+
+        LocalDate today = LocalDate.now();
+
+        LocalDate startOfMonth = today.withDayOfMonth(1);
+        LocalDate startOfNextMonth = startOfMonth.plusMonths(1);
+
+        try (
+                Connection connection = DBConnection.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)
+        ) {
+            statement.setDate(1, java.sql.Date.valueOf(startOfMonth));
+            statement.setDate(2, java.sql.Date.valueOf(startOfNextMonth));
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getDouble("total");
+                }
+            }
+
+        } catch (SQLException e) {
+            System.out.println(
+                    "Failed to calculate current month's spending: "
+                            + e.getMessage()
+            );
+        }
+
+        return 0;
+    }
+
+    public double getMonthlyBudget() {
+        String sql = "SELECT monthly_limit FROM budgets WHERE id = 1";
+
+        try (
+                Connection connection = DBConnection.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql);
+                ResultSet resultSet = statement.executeQuery()
+        ) {
+            if (resultSet.next()) {
+                return resultSet.getDouble("monthly_limit");
+            }
+
+            System.out.println("No budget found in the database.");
+
+        } catch (SQLException e) {
+            System.out.println("Failed to retrieve budget: " + e.getMessage());
+        }
+
+        return 0;
+    }
+    public boolean updateMonthlyBudget(double monthlyLimit) {
+        if (!Double.isFinite(monthlyLimit) || monthlyLimit <= 0) {
+            System.out.println("Budget must be greater than zero.");
+            return false;
+        }
+
+        String sql = """
+            UPDATE budgets
+            SET monthly_limit = ?
+            WHERE id = 1
+            """;
+
+        try (
+                Connection connection = DBConnection.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)
+        ) {
+            statement.setDouble(1, monthlyLimit);
+
+            int rowsUpdated = statement.executeUpdate();
+
+            if (rowsUpdated > 0) {
+                return true;
+            }
+
+            System.out.println("No budget record found to update.");
+
+        } catch (SQLException e) {
+            System.out.println("Failed to update budget: " + e.getMessage());
+        }
+
+        return false;
+    }
 }
